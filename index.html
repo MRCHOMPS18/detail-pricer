@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fresco Detailing — Detail Pricer</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--bg2:#111111;--bg3:#1a1a1a;--bg4:#222222;
+  --border:#2a2a2a;--border2:#363636;
+  --text:#f5f5f5;--text2:#a8a8a8;--text3:#707070;
+  --red:#AA0000;--red-bright:#cc1a1a;--red-dim:rgba(170,0,0,.12);--red-glow:rgba(170,0,0,.25);
+  --gold:#B3995D;--gold-bright:#d4b76a;--gold-dim:rgba(179,153,93,.1);--gold-glow:rgba(179,153,93,.2);
+  --green:#34d399;--green-dim:rgba(52,211,153,.08);
+  --radius:10px;--radius-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,.5),0 4px 12px rgba(0,0,0,.4);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.6);
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.app{max-width:520px;margin:0 auto;padding:16px 16px 180px}
+.header{text-align:center;padding:24px 0 16px}
+.logo-mark{font-size:2.4rem;font-weight:900;letter-spacing:-.04em;color:var(--red);text-shadow:0 0 30px var(--red-glow)}
+.logo-name{font-size:.8rem;font-weight:600;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-top:-2px}
+.header-line{width:80px;height:2px;margin:12px auto 0;border-radius:1px;background:linear-gradient(90deg,var(--red),var(--gold),transparent);background-size:200% 100%;animation:shimmer 4s linear infinite}
+
+.mode-tabs{display:flex;gap:0;margin-top:16px;background:var(--bg3);border-radius:var(--radius);padding:3px;border:1px solid var(--border)}
+.mode-tab{flex:1;text-align:center;padding:10px 0;font-size:.8rem;font-weight:600;color:var(--text3);cursor:pointer;border-radius:8px;transition:all .2s;letter-spacing:.04em;user-select:none}
+.mode-tab.active{background:var(--red);color:#fff;box-shadow:0 2px 10px var(--red-glow)}
+.mode-tab:not(.active):hover{color:var(--text2)}
+.mode-icon{font-size:1rem;display:block;margin-bottom:2px}
+
+.section{margin-top:22px}
+.section-label{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.section-label .num{background:var(--red-dim);color:var(--red-bright);width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;letter-spacing:0}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow)}
+.btn-row{display:flex;gap:5px;flex-wrap:wrap}
+.btn-pill{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s;user-select:none;flex:1;text-align:center;min-width:0}
+.btn-pill:hover{border-color:var(--border2);color:var(--text);background:var(--bg4)}
+.btn-pill.active{background:var(--red-dim);border-color:var(--red);color:#ff4444;font-weight:600;box-shadow:0 0 0 1px var(--red),0 0 12px var(--red-glow)}
+.btn-pill.sm{padding:6px 8px;font-size:.72rem}
+.btn-pill.green.active{background:var(--green-dim);border-color:var(--green);color:var(--green);box-shadow:0 0 0 1px var(--green),0 0 12px rgba(52,211,153,.2)}
+
+/* Base price display */
+.base-price-display{background:linear-gradient(135deg,rgba(170,0,0,.06),rgba(179,153,93,.06));border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 16px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;position:relative;overflow:hidden}
+.base-price-display::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,var(--red),var(--gold))}
+.bp-info{flex:1}
+.bp-label{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em}
+.bp-service{font-size:.95rem;font-weight:700;margin-top:2px}
+.bp-price{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--gold-bright);text-shadow:0 0 15px var(--gold-glow)}
+
+/* Condition items */
+.cond-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:5px}
+.cond-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.cond-name{font-size:.8rem;font-weight:600}
+.cond-val{font-family:var(--mono);font-size:.68rem;font-weight:600;min-width:60px;text-align:right}
+.cond-btns{display:flex;gap:3px}
+.cond-btn{background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:5px 0;font-family:var(--font);font-size:.66rem;font-weight:500;color:var(--text3);cursor:pointer;transition:all .12s;flex:1;text-align:center;user-select:none}
+.cond-btn:hover{color:var(--text2);border-color:var(--border2)}
+.cond-btn.a0{background:var(--bg4);border-color:var(--border2);color:var(--text2)}
+.cond-btn.a1{background:rgba(52,211,153,.08);border-color:var(--green);color:var(--green)}
+.cond-btn.a2{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-bright)}
+.cond-btn.a3{background:var(--red-dim);border-color:var(--red);color:var(--red-bright)}
+
+/* Adjusted price banner */
+.adj-banner{background:linear-gradient(135deg,rgba(170,0,0,.08),rgba(179,153,93,.08));border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 16px;margin-top:10px;position:relative;overflow:hidden}
+.adj-banner::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,var(--red),var(--gold))}
+.adj-title{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.adj-price{font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--gold-bright)}
+.adj-detail{font-size:.68rem;color:var(--text3);margin-top:3px}
+.adj-meter{height:4px;background:var(--bg4);border-radius:2px;margin-top:8px;overflow:hidden;position:relative}
+.adj-meter-fill{height:100%;border-radius:2px;transition:width .3s,background .3s}
+
+/* Custom price */
+.custom-price-section{margin-top:8px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)}
+.custom-price-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+.custom-price-row label{font-size:.7rem;color:var(--text2);min-width:85px;font-weight:500}
+.custom-price-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:.83rem;color:var(--gold-bright);outline:none;transition:border-color .15s}
+.custom-price-input:focus{border-color:var(--gold)}
+.custom-price-input::placeholder{color:var(--text3)}
+.custom-price-title{font-size:.68rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+
+/* Extraction */
+.extraction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.ext-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 5px;text-align:center;cursor:pointer;transition:all .15s}
+.ext-btn:hover{border-color:var(--border2)}
+.ext-btn.active{background:var(--red-dim);border-color:var(--red);box-shadow:0 0 10px var(--red-glow)}
+.ext-btn .ext-label{font-size:.7rem;color:var(--text2);font-weight:500}
+.ext-btn .ext-price{font-family:var(--mono);font-size:.8rem;color:var(--gold);font-weight:600;margin-top:2px}
+.ext-btn.active .ext-label{color:var(--text)}
+
+/* Add-ons */
+.addon-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all .15s}
+.addon-card:hover{border-color:var(--border2)}
+.addon-card.active{background:var(--gold-dim);border-color:var(--gold);box-shadow:0 0 10px var(--gold-glow)}
+.addon-card+.addon-card{margin-top:5px}
+.addon-info{flex:1}.addon-name{font-size:.82rem;font-weight:600}.addon-desc{font-size:.66rem;color:var(--text3);margin-top:1px}
+.addon-price-tag{font-family:var(--mono);font-size:.82rem;font-weight:600;color:var(--gold)}
+
+/* Phone issue chips */
+.issue-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all .15s;text-align:center;font-size:.78rem;font-weight:500;color:var(--text2);user-select:none}
+.issue-chip:hover{border-color:var(--border2);color:var(--text)}
+.issue-chip.active{background:var(--red-dim);border-color:var(--red);color:#ff4444;font-weight:600}
+.issue-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+
+/* Phone range */
+.range-banner{background:linear-gradient(135deg,rgba(170,0,0,.06),rgba(179,153,93,.06));border:1px solid var(--border2);border-radius:var(--radius-lg);padding:16px 18px;margin-top:10px;text-align:center;position:relative;overflow:hidden}
+.range-banner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--gold))}
+.range-label{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+.range-value{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--gold-bright);text-shadow:0 0 20px var(--gold-glow)}
+.range-detail{font-size:.68rem;color:var(--text3);margin-top:4px}
+.range-note{font-size:.62rem;color:var(--text3);margin-top:6px;font-style:italic}
+
+/* Discount */
+.discount-row{display:flex;gap:5px;align-items:stretch}
+.discount-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:.85rem;color:var(--text);outline:none;transition:border-color .15s}
+.discount-input:focus{border-color:var(--gold)}
+.discount-input::placeholder{color:var(--text3)}
+.discount-type-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 13px;font-family:var(--mono);font-size:.88rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;min-width:42px;text-align:center}
+.discount-type-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-bright)}
+
+/* Total bar */
+.total-bar{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,rgba(10,10,10,0) 0%,var(--bg) 25%);padding:22px 16px 18px;z-index:100}
+.total-inner{max-width:520px;margin:0 auto;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:13px 16px;box-shadow:var(--shadow-lg);display:flex;justify-content:space-between;align-items:center}
+.total-label{font-size:.68rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.12em}
+.total-amount{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--gold-bright);letter-spacing:-.02em;text-shadow:0 0 20px var(--gold-glow)}
+.total-discount{font-size:.68rem;color:var(--gold);margin-top:1px;font-weight:500}
+.total-original{font-family:var(--mono);font-size:.78rem;color:var(--text3);text-decoration:line-through;margin-right:6px}
+.reset-btn{background:rgba(170,0,0,.1);border:1px solid transparent;border-radius:8px;padding:8px 13px;font-family:var(--font);font-size:.7rem;font-weight:600;color:var(--red-bright);cursor:pointer;transition:all .15s;letter-spacing:.04em;text-transform:uppercase}
+.reset-btn:hover{border-color:var(--red);background:rgba(170,0,0,.2)}
+
+.hidden{display:none!important}
+.sub-label{font-size:.63rem;color:var(--text3);margin-bottom:5px;font-weight:500}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section{animation:fadeUp .3s ease both}
+@keyframes pulse-gold{0%,100%{box-shadow:var(--shadow-lg),0 0 15px rgba(179,153,93,.08)}50%{box-shadow:var(--shadow-lg),0 0 30px rgba(179,153,93,.18)}}
+.total-inner.has-value{animation:pulse-gold 3s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@media(max-width:400px){.cond-btn{font-size:.6rem;padding:4px 2px}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<div class="header">
+  <div class="logo-mark">FAD</div>
+  <div class="logo-name">Fresco Detailing</div>
+  <div class="header-line"></div>
+</div>
+
+<div class="mode-tabs">
+  <div class="mode-tab active" id="tabOnsite" onclick="setMode('onsite')"><span class="mode-icon">📋</span>On-Site</div>
+  <div class="mode-tab" id="tabPhone" onclick="setMode('phone')"><span class="mode-icon">📞</span>Phone Quote</div>
+</div>
+
+<!-- ==================== ON-SITE ==================== -->
+<div id="modeOnsite">
+
+  <div class="section">
+    <div class="section-label"><span class="num">1</span> Vehicle Size</div>
+    <div class="btn-row" id="os_vRow">
+      <div class="btn-pill" data-v="0" onclick="os_set('vehicle',0)">Sedan / Coupe</div>
+      <div class="btn-pill" data-v="1" onclick="os_set('vehicle',1)">SUV</div>
+      <div class="btn-pill" data-v="2" onclick="os_set('vehicle',2)">Lrg SUV / Truck</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">2</span> Service Type</div>
+    <div class="btn-row" id="os_sRow">
+      <div class="btn-pill" data-s="exterior" onclick="os_set('service','exterior')">Exterior</div>
+      <div class="btn-pill" data-s="interior" onclick="os_set('service','interior')">Interior</div>
+      <div class="btn-pill" data-s="both" onclick="os_set('service','both')">Full Detail</div>
+    </div>
+  </div>
+
+  <!-- Base Price Display -->
+  <div id="os_baseBanner" class="base-price-display hidden">
+    <div class="bp-info">
+      <div class="bp-label">Base Price</div>
+      <div class="bp-service" id="os_baseSvc"></div>
+    </div>
+    <div class="bp-price" id="os_basePrice"></div>
+  </div>
+
+  <!-- Condition Assessment -->
+  <div class="section">
+    <div class="section-label"><span class="num">3</span> Vehicle Condition</div>
+    <div id="os_intCond"><div class="sub-label" style="color:var(--red-bright);text-transform:uppercase;letter-spacing:.1em;font-weight:600">Interior</div><div id="os_intC"></div></div>
+    <div id="os_extCond" style="margin-top:12px"><div class="sub-label" style="color:var(--red-bright);text-transform:uppercase;letter-spacing:.1em;font-weight:600">Exterior</div><div id="os_extC"></div></div>
+
+    <!-- Adjusted price -->
+    <div id="os_adjBanner" class="adj-banner hidden">
+      <div class="adj-title">Condition-Adjusted Price</div>
+      <div class="adj-price" id="os_adjPrice"></div>
+      <div class="adj-detail" id="os_adjDetail"></div>
+      <div class="adj-meter"><div class="adj-meter-fill" id="os_adjMeter" style="width:0%;background:var(--green)"></div></div>
+    </div>
+  </div>
+
+  <!-- Custom Price Override -->
+  <div class="section">
+    <div class="section-label"><span class="num">4</span> Custom Price Override</div>
+    <div class="custom-price-section">
+      <div class="custom-price-title">For custom quotes & special jobs</div>
+      <div class="custom-price-row"><label>Base Override</label><input type="number" class="custom-price-input" id="os_customBase" placeholder="Replaces base service price" min="0" oninput="os_recalc()"></div>
+      <div class="custom-price-row" style="margin-top:7px"><label>Total Override</label><input type="number" class="custom-price-input" id="os_customTotal" placeholder="Overrides entire total" min="0" oninput="os_recalc()"></div>
+      <div style="font-size:.6rem;color:var(--text3);margin-top:5px">Base replaces the adjusted service price. Total overrides everything.</div>
+    </div>
+  </div>
+
+  <!-- À La Carte -->
+  <div class="section">
+    <div class="section-label"><span class="num">5</span> À La Carte Add-Ons</div>
+    <div class="addon-card" id="os_addonExtraction" onclick="os_toggleAddon('extraction')"><div class="addon-info"><div class="addon-name">Carpet & Seat Extraction</div><div class="addon-desc">Deep cleaning for seats, carpets, or both</div></div><div class="addon-price-tag" id="os_extractionPrice">—</div></div>
+    <div class="card" id="os_extractionCard" style="display:none;margin-top:4px">
+      <div class="sub-label">Soil Level</div>
+      <div class="btn-row" id="os_etRow"><div class="btn-pill sm" data-et="0" onclick="os_setExtTier(0)">Light</div><div class="btn-pill sm" data-et="1" onclick="os_setExtTier(1)">Moderate</div><div class="btn-pill sm" data-et="2" onclick="os_setExtTier(2)">Heavy</div></div>
+      <div style="font-size:.6rem;color:var(--text3);margin:6px 0" id="os_etDesc">Select soil tier</div>
+      <div class="sub-label">Area</div>
+      <div class="extraction-grid" id="os_eaRow">
+        <div class="ext-btn" data-ea="seats" onclick="os_setExtArea('seats')"><div class="ext-label">Seats</div><div class="ext-price" id="os_eSP">—</div></div>
+        <div class="ext-btn" data-ea="carpets" onclick="os_setExtArea('carpets')"><div class="ext-label">Carpets</div><div class="ext-price" id="os_eCP">—</div></div>
+        <div class="ext-btn" data-ea="both" onclick="os_setExtArea('both')"><div class="ext-label">Both</div><div class="ext-price" id="os_eBP">—</div></div>
+      </div>
+    </div>
+    <div class="addon-card" id="os_addonClay" onclick="os_toggleAddon('clay')"><div class="addon-info"><div class="addon-name">Clay Bar Treatment</div><div class="addon-desc" id="os_clayDesc">$75 standalone · $50 with service</div></div><div class="addon-price-tag" id="os_clayP">+$75</div></div>
+    <div class="addon-card" id="os_addonTrim" onclick="os_toggleAddon('trim')"><div class="addon-info"><div class="addon-name">Trim Restoration</div><div class="addon-desc">Full trim restoration</div></div><div class="addon-price-tag">+$50</div></div>
+    <div class="addon-card" id="os_addonTrimDress" onclick="os_toggleAddon('trimDress')"><div class="addon-info"><div class="addon-name">Trim Dressing Only</div><div class="addon-desc">Dressing application only</div></div><div class="addon-price-tag">+$25</div></div>
+    <div class="addon-card" id="os_addonHeadlight" onclick="os_toggleAddon('headlight')"><div class="addon-info"><div class="addon-name">Headlight Restoration</div><div class="addon-desc" id="os_hlDesc">$100 standalone · $75 with service</div></div><div class="addon-price-tag" id="os_hlP">+$100</div></div>
+    <div class="addon-card" id="os_addonPet" onclick="os_toggleAddon('pet')"><div class="addon-info"><div class="addon-name">Pet Hair Removal</div><div class="addon-desc">Select severity</div></div><div class="addon-price-tag" id="os_petP">—</div></div>
+    <div class="card" id="os_petCard" style="display:none;margin-top:4px"><div class="btn-row"><div class="btn-pill sm" data-pt="25" onclick="os_setPT(25)">Light · $25</div><div class="btn-pill sm" data-pt="35" onclick="os_setPT(35)">Mod · $35</div><div class="btn-pill sm" data-pt="50" onclick="os_setPT(50)">Heavy · $50</div></div></div>
+    <div class="addon-card" id="os_addonBio" onclick="os_toggleAddon('bio')"><div class="addon-info"><div class="addon-name">Biohazard Fee</div><div class="addon-desc">Vomit, mold, blood, etc.</div></div><div class="addon-price-tag" id="os_bioP">—</div></div>
+    <div class="card" id="os_bioCard" style="display:none;margin-top:4px"><div class="btn-row"><div class="btn-pill sm" data-bt="50" onclick="os_setBT(50)">$50</div><div class="btn-pill sm" data-bt="75" onclick="os_setBT(75)">$75</div><div class="btn-pill sm" data-bt="100" onclick="os_setBT(100)">$100</div><div class="btn-pill sm" data-bt="150" onclick="os_setBT(150)">$150+</div></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">6</span> Discount</div>
+    <div class="discount-row">
+      <input type="number" class="discount-input" id="os_discI" placeholder="Enter amount" min="0" oninput="os_recalc()">
+      <div class="discount-type-btn active" id="os_dD" onclick="os_setDT('dollar')">$</div>
+      <div class="discount-type-btn" id="os_dP" onclick="os_setDT('percent')">%</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PHONE ==================== -->
+<div id="modePhone" class="hidden">
+
+  <div class="section">
+    <div class="section-label"><span class="num">1</span> Vehicle Size</div>
+    <div class="btn-row" id="ph_vRow">
+      <div class="btn-pill" data-v="0" onclick="ph_set('vehicle',0)">Sedan / Coupe</div>
+      <div class="btn-pill" data-v="1" onclick="ph_set('vehicle',1)">SUV</div>
+      <div class="btn-pill" data-v="2" onclick="ph_set('vehicle',2)">Lrg SUV / Truck</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">2</span> Vehicle Age</div>
+    <div class="btn-row" id="ph_aRow">
+      <div class="btn-pill" data-a="new" onclick="ph_set('age','new')">< 5 yrs</div>
+      <div class="btn-pill" data-a="mid" onclick="ph_set('age','mid')">5–10 yrs</div>
+      <div class="btn-pill" data-a="old" onclick="ph_set('age','old')">10–20 yrs</div>
+      <div class="btn-pill" data-a="oldest" onclick="ph_set('age','oldest')">20+ yrs</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">3</span> Service Type</div>
+    <div class="btn-row" id="ph_sRow">
+      <div class="btn-pill" data-s="exterior" onclick="ph_set('service','exterior')">Exterior</div>
+      <div class="btn-pill" data-s="interior" onclick="ph_set('service','interior')">Interior</div>
+      <div class="btn-pill" data-s="both" onclick="ph_set('service','both')">Full Detail</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">4</span> Garage Kept?</div>
+    <div class="btn-row" id="ph_gRow">
+      <div class="btn-pill green" data-g="yes" onclick="ph_set('garage','yes')">Yes</div>
+      <div class="btn-pill" data-g="no" onclick="ph_set('garage','no')">No</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">5</span> Kids or Pets?</div>
+    <div class="btn-row" id="ph_kpRow">
+      <div class="btn-pill" data-kp="none" onclick="ph_set('kidspets','none')">Neither</div>
+      <div class="btn-pill" data-kp="kids" onclick="ph_set('kidspets','kids')">Kids</div>
+      <div class="btn-pill" data-kp="pets" onclick="ph_set('kidspets','pets')">Pets</div>
+      <div class="btn-pill" data-kp="both" onclick="ph_set('kidspets','both')">Both</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">6</span> Reported Issues</div>
+    <div class="issue-grid" id="ph_issGrid">
+      <div class="issue-chip" data-i="stains" onclick="ph_toggleIss('stains')">Stains</div>
+      <div class="issue-chip" data-i="pethair" onclick="ph_toggleIss('pethair')">Pet Hair</div>
+      <div class="issue-chip" data-i="smell" onclick="ph_toggleIss('smell')">Smell / Odor</div>
+      <div class="issue-chip" data-i="biohazard" onclick="ph_toggleIss('biohazard')">Biohazard</div>
+      <div class="issue-chip" data-i="sand" onclick="ph_toggleIss('sand')">Sand / Dirt</div>
+      <div class="issue-chip" data-i="sap" onclick="ph_toggleIss('sap')">Tree Sap / Tar</div>
+    </div>
+  </div>
+
+  <div id="ph_rangeBanner" class="range-banner hidden">
+    <div class="range-label">Estimated Price Range</div>
+    <div class="range-value" id="ph_rangeVal">—</div>
+    <div class="range-detail" id="ph_rangeDetail"></div>
+    <div class="range-note">"Final price confirmed on-site after inspection"</div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">7</span> À La Carte Add-Ons</div>
+    <div class="addon-card" id="ph_addonClay" onclick="ph_toggleAddon('clay')"><div class="addon-info"><div class="addon-name">Clay Bar Treatment</div><div class="addon-desc">$50 with service</div></div><div class="addon-price-tag">+$50</div></div>
+    <div class="addon-card" id="ph_addonTrim" onclick="ph_toggleAddon('trim')"><div class="addon-info"><div class="addon-name">Trim Restoration</div><div class="addon-desc">Full restoration</div></div><div class="addon-price-tag">+$50</div></div>
+    <div class="addon-card" id="ph_addonTrimDress" onclick="ph_toggleAddon('trimDress')"><div class="addon-info"><div class="addon-name">Trim Dressing Only</div><div class="addon-desc">Dressing application only</div></div><div class="addon-price-tag">+$25</div></div>
+    <div class="addon-card" id="ph_addonHeadlight" onclick="ph_toggleAddon('headlight')"><div class="addon-info"><div class="addon-name">Headlight Restoration</div><div class="addon-desc">$75 with service</div></div><div class="addon-price-tag">+$75</div></div>
+    <div class="addon-card" id="ph_addonPet" onclick="ph_toggleAddon('pet')"><div class="addon-info"><div class="addon-name">Pet Hair Removal</div><div class="addon-desc">$25–$50 range</div></div><div class="addon-price-tag">+$25–$50</div></div>
+    <div class="addon-card" id="ph_addonBio" onclick="ph_toggleAddon('bio')"><div class="addon-info"><div class="addon-name">Biohazard Fee</div><div class="addon-desc">Starts at $50</div></div><div class="addon-price-tag">+$50–$150</div></div>
+    <div class="addon-card" id="ph_addonExtraction" onclick="ph_toggleAddon('extraction')"><div class="addon-info"><div class="addon-name">Carpet & Seat Extraction</div><div class="addon-desc">Price varies by soil level & vehicle</div></div><div class="addon-price-tag" id="ph_extP">+$50–$290</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label"><span class="num">8</span> Discount</div>
+    <div class="discount-row">
+      <input type="number" class="discount-input" id="ph_discI" placeholder="Enter amount" min="0" oninput="ph_recalc()">
+      <div class="discount-type-btn active" id="ph_dD" onclick="ph_setDT('dollar')">$</div>
+      <div class="discount-type-btn" id="ph_dP" onclick="ph_setDT('percent')">%</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Floating Total -->
+<div class="total-bar">
+  <div class="total-inner" id="totalBar">
+    <div>
+      <div class="total-label" id="totalLabel">Estimated Total</div>
+      <div style="display:flex;align-items:baseline;margin-top:2px">
+        <span class="total-original" id="totalOrig" style="display:none"></span>
+        <span class="total-amount" id="totalAmt">$0</span>
+      </div>
+      <div class="total-discount" id="totalDiscL" style="display:none"></div>
+    </div>
+    <div><div class="reset-btn" onclick="resetCur()">Reset</div></div>
+  </div>
+</div>
+
+<script>
+// ===== BASE PRICES: [sedan, suv, lrgsuv/truck] =====
+const BASE={both:[150,160,170],exterior:[60,65,70],interior:[120,125,130]};
+const SVC_NAMES={both:'Full Detail',exterior:'Exterior',interior:'Interior'};
+const VEH_NAMES=['Sedan/Coupe','SUV','Lrg SUV/Truck'];
+
+// Extraction prices: [tier][vehicleSize] => {s,c,b}
+// vehicleSize now: 0=sedan, 1=suv, 2=lrg/truck
+const EP=[[{s:50,c:50,b:85},{s:60,c:60,b:105},{s:70,c:70,b:125}],[{s:80,c:80,b:140},{s:95,c:95,b:170},{s:110,c:110,b:200}],[{s:120,c:120,b:210},{s:140,c:140,b:250},{s:160,c:160,b:290}]];
+const ETD=['Minor spills, light dust, single-area spotting','Salt stains, drink spills, high-traffic dirt — pre-treatment needed','Embedded mud, pet hair, biological messes, heavy organic staining'];
+
+const INT_C=[{id:'dust',n:'Dust / Debris'},{id:'grime',n:'Sticky Grime'},{id:'spills',n:'Food / Drink Spills'},{id:'sand',n:'Sand / Dirt Buildup'},{id:'headliner',n:'Headliner Stains'}];
+const EXT_C=[{id:'edust',n:'Dust Buildup'},{id:'roadgrime',n:'Dirt / Road Grime'},{id:'bugs',n:'Bug Splatter'},{id:'sap',n:'Tree Sap / Tar'}];
+const SL=['None','Light','Moderate','Heavy'];
+
+let mode='onsite';
+function $$(s){return document.querySelectorAll(s)}
+function $(s){return document.querySelector(s)}
+function act(c,a,v){c.querySelectorAll(`[${a}]`).forEach(e=>e.classList.toggle('active',e.getAttribute(a)==String(v)))}
+function setMode(m){mode=m;$('#tabOnsite').classList.toggle('active',m==='onsite');$('#tabPhone').classList.toggle('active',m==='phone');$('#modeOnsite').classList.toggle('hidden',m!=='onsite');$('#modePhone').classList.toggle('hidden',m!=='phone');if(m==='onsite')os_recalc();else ph_recalc()}
+function resetCur(){if(mode==='onsite')os_reset();else ph_reset()}
+
+// ==================== ON-SITE ====================
+let os={vehicle:null,service:null,conds:{},extTier:null,extArea:null,addons:{extraction:false,clay:false,trim:false,trimDress:false,headlight:false,pet:false,bio:false},petTier:null,bioTier:null,discType:'dollar'};
+
+function os_buildConds(){
+  $('#os_intC').innerHTML=INT_C.map(c=>mkCond('os',c)).join('');
+  $('#os_extC').innerHTML=EXT_C.map(c=>mkCond('os',c)).join('');
+}
+function mkCond(pf,c){return`<div class="cond-item"><div class="cond-header"><div class="cond-name">${c.n}</div><div class="cond-val" id="${pf}_cv_${c.id}">None</div></div><div class="cond-btns">${[0,1,2,3].map(s=>`<div class="cond-btn${s===0?' a0':''}" data-cid="${c.id}" data-sev="${s}" onclick="${pf}_setCond('${c.id}',${s})">${SL[s]}</div>`).join('')}</div></div>`}
+
+function os_setCond(id,sev){
+  os.conds[id]=sev;const cls=['a0','a1','a2','a3'];
+  $$(`#modeOnsite [data-cid="${id}"]`).forEach(e=>{const s=+e.dataset.sev;e.className='cond-btn'+(s===sev?' '+cls[sev]:'')});
+  const v=$(`#os_cv_${id}`);v.textContent=SL[sev];v.style.color=sev===0?'var(--text3)':sev===1?'var(--green)':sev===2?'var(--gold-bright)':'var(--red-bright)';
+  os_recalc();
+}
+
+function os_getCondScore(){
+  const vals=Object.values(os.conds);if(!vals.length)return 0;
+  return vals.reduce((a,b)=>a+b,0);
+}
+// Max possible score: interior(5 items * 3) + exterior(4 items * 3) = 27
+// We scale so that max score => 50% markup
+function os_getMultiplier(){
+  const score=os_getCondScore();
+  const svc=os.service;
+  let maxPossible=0;
+  if(svc==='interior'||svc==='both')maxPossible+=INT_C.length*3;
+  if(svc==='exterior'||svc==='both')maxPossible+=EXT_C.length*3;
+  if(maxPossible===0)return 1;
+  const pct=Math.min(score/maxPossible,1);
+  return 1+(pct*0.5); // up to 50%
+}
+
+function os_set(key,val){
+  os[key]=val;
+  const rowMap={vehicle:'os_vRow',service:'os_sRow'};
+  const attrMap={vehicle:'data-v',service:'data-s'};
+  act($('#'+rowMap[key]),attrMap[key],val);
+  if(key==='service')os_updateCondVis();
+  os_updateBaseBanner();os_recalc();
+}
+function os_updateCondVis(){
+  const s=os.service;
+  $('#os_intCond').style.display=(s==='interior'||s==='both')?'block':'none';
+  $('#os_extCond').style.display=(s==='exterior'||s==='both')?'block':'none';
+  if(s==='exterior')INT_C.forEach(c=>{os.conds[c.id]=0;rCUI('os',c.id)});
+  if(s==='interior')EXT_C.forEach(c=>{os.conds[c.id]=0;rCUI('os',c.id)});
+}
+function rCUI(pf,id){$$(`#mode${pf==='os'?'Onsite':'Phone'} [data-cid="${id}"]`).forEach((e,i)=>{e.className='cond-btn'+(i===0?' a0':'')});const v=$(`#${pf}_cv_${id}`);if(v){v.textContent='None';v.style.color='var(--text3)'}}
+
+function os_updateBaseBanner(){
+  if(os.vehicle===null||os.service===null){$('#os_baseBanner').classList.add('hidden');return}
+  $('#os_baseBanner').classList.remove('hidden');
+  $('#os_baseSvc').textContent=SVC_NAMES[os.service]+' · '+VEH_NAMES[os.vehicle];
+  $('#os_basePrice').textContent='$'+BASE[os.service][os.vehicle];
+}
+
+function os_setExtTier(t){os.extTier=os.extTier===t?null:t;act($('#os_etRow'),'data-et',os.extTier);os_updateExtP();os_recalc()}
+function os_setExtArea(a){os.extArea=os.extArea===a?null:a;act($('#os_eaRow'),'data-ea',os.extArea);os_recalc();os_updateExtTag()}
+function os_updateExtP(){
+  if(os.extTier===null||os.vehicle===null){$('#os_eSP').textContent='—';$('#os_eCP').textContent='—';$('#os_eBP').textContent='—';$('#os_etDesc').textContent=os.extTier!==null?ETD[os.extTier]:'Select soil tier';os_updateExtTag();return}
+  const p=EP[os.extTier][os.vehicle];$('#os_eSP').textContent='$'+p.s;$('#os_eCP').textContent='$'+p.c;$('#os_eBP').textContent='$'+p.b;$('#os_etDesc').textContent=ETD[os.extTier];os_updateExtTag();
+}
+function os_updateExtTag(){
+  if(os.extTier!==null&&os.extArea!==null&&os.vehicle!==null){const p=EP[os.extTier][os.vehicle];$('#os_extractionPrice').textContent='+$'+(os.extArea==='seats'?p.s:os.extArea==='carpets'?p.c:p.b)}else{$('#os_extractionPrice').textContent='—'}
+}
+
+function os_toggleAddon(k){
+  if(k==='trim'&&os.addons.trimDress){os.addons.trimDress=false;$('#os_addonTrimDress').classList.remove('active')}
+  if(k==='trimDress'&&os.addons.trim){os.addons.trim=false;$('#os_addonTrim').classList.remove('active')}
+  os.addons[k]=!os.addons[k];const cap=k.charAt(0).toUpperCase()+k.slice(1);$('#os_addon'+cap)?.classList.toggle('active',os.addons[k]);
+  if(k==='extraction'){$('#os_extractionCard').style.display=os.addons.extraction?'block':'none';if(!os.addons.extraction){os.extTier=null;os.extArea=null;$$('#os_etRow .btn-pill').forEach(e=>e.classList.remove('active'));$$('#os_eaRow .ext-btn').forEach(e=>e.classList.remove('active'));os_updateExtP();$('#os_extractionPrice').textContent='—'}}
+  if(k==='pet'){$('#os_petCard').style.display=os.addons.pet?'block':'none';if(!os.addons.pet){os.petTier=null;$$('#os_petCard [data-pt]').forEach(e=>e.classList.remove('active'));$('#os_petP').textContent='—'}}
+  if(k==='bio'){$('#os_bioCard').style.display=os.addons.bio?'block':'none';if(!os.addons.bio){os.bioTier=null;$$('#os_bioCard [data-bt]').forEach(e=>e.classList.remove('active'));$('#os_bioP').textContent='—'}}
+  os_updateAddonP();os_recalc();
+}
+function os_setPT(v){os.petTier=v;$$('#os_petCard [data-pt]').forEach(e=>e.classList.toggle('active',+e.dataset.pt===v));$('#os_petP').textContent='+$'+v;os_recalc()}
+function os_setBT(v){os.bioTier=v;$$('#os_bioCard [data-bt]').forEach(e=>e.classList.toggle('active',+e.dataset.bt===v));$('#os_bioP').textContent='+$'+v;os_recalc()}
+function os_updateAddonP(){
+  const h=os.service!==null;
+  $('#os_clayP').textContent='+$'+(h?50:75);$('#os_clayDesc').textContent='$75 standalone · $50 with service'+(h?' ✓':'');
+  $('#os_hlP').textContent='+$'+(h?75:100);$('#os_hlDesc').textContent='$100 standalone · $75 with service'+(h?' ✓':'');
+}
+function os_setDT(t){os.discType=t;$('#os_dD').classList.toggle('active',t==='dollar');$('#os_dP').classList.toggle('active',t==='percent');os_recalc()}
+
+function os_recalc(){
+  // Total override
+  const tov=parseFloat($('#os_customTotal').value);
+  if(tov>0){os_applyDisc(tov);updateAdjBanner(0,0);return}
+
+  let t=0;const cb=parseFloat($('#os_customBase').value);
+  let baseP=0,adjP=0;
+
+  if(cb>0){
+    t+=cb;adjP=cb;baseP=cb;
+  } else if(os.service!==null&&os.vehicle!==null){
+    baseP=BASE[os.service][os.vehicle];
+    const mult=os_getMultiplier();
+    adjP=Math.round(baseP*mult);
+    t+=adjP;
+  }
+
+  // Show adjusted banner
+  const score=os_getCondScore();
+  updateAdjBanner(baseP,adjP);
+
+  // Extraction
+  if(os.addons.extraction&&os.extTier!==null&&os.extArea!==null&&os.vehicle!==null){const p=EP[os.extTier][os.vehicle];t+=os.extArea==='seats'?p.s:os.extArea==='carpets'?p.c:p.b}
+  const h=os.service!==null;
+  if(os.addons.clay)t+=h?50:75;if(os.addons.trim)t+=50;if(os.addons.trimDress)t+=25;if(os.addons.headlight)t+=h?75:100;
+  if(os.addons.pet&&os.petTier)t+=os.petTier;if(os.addons.bio&&os.bioTier)t+=os.bioTier;
+  os_applyDisc(t);
+}
+
+function updateAdjBanner(baseP,adjP){
+  const score=os_getCondScore();
+  if(score===0||os.vehicle===null||os.service===null){$('#os_adjBanner').classList.add('hidden');return}
+  $('#os_adjBanner').classList.remove('hidden');
+  const markup=adjP-baseP;
+  $('#os_adjPrice').textContent='$'+adjP;
+  $('#os_adjDetail').textContent='Base $'+baseP+' + $'+markup+' condition adjustment';
+  // Meter
+  const svc=os.service;let mx=0;
+  if(svc==='interior'||svc==='both')mx+=INT_C.length*3;
+  if(svc==='exterior'||svc==='both')mx+=EXT_C.length*3;
+  const pct=mx>0?Math.round((score/mx)*100):0;
+  const meter=$('#os_adjMeter');meter.style.width=pct+'%';
+  meter.style.background=pct<33?'var(--green)':pct<66?'var(--gold)':'var(--red-bright)';
+}
+
+function os_applyDisc(t){
+  const dv=parseFloat($('#os_discI').value)||0;let d=0,f=t;
+  if(dv>0&&t>0){d=os.discType==='dollar'?Math.min(dv,t):Math.round(t*(Math.min(dv,100)/100));f=t-d}
+  $('#totalLabel').textContent='Estimated Total';$('#totalAmt').textContent='$'+f;
+  if(d>0){$('#totalOrig').textContent='$'+t;$('#totalOrig').style.display='inline';$('#totalDiscL').textContent=os.discType==='dollar'?'-$'+d+' discount':'-'+dv+'% ($'+d+' off)';$('#totalDiscL').style.display='block'}
+  else{$('#totalOrig').style.display='none';$('#totalDiscL').style.display='none'}
+  $('#totalBar').classList.toggle('has-value',t>0);
+}
+
+function os_reset(){
+  os={vehicle:null,service:null,conds:{},extTier:null,extArea:null,addons:{extraction:false,clay:false,trim:false,trimDress:false,headlight:false,pet:false,bio:false},petTier:null,bioTier:null,discType:'dollar'};
+  $$('#modeOnsite .active').forEach(e=>e.classList.remove('active'));$('#os_dD').classList.add('active');$('#os_discI').value='';$('#os_customBase').value='';$('#os_customTotal').value='';
+  $('#os_petCard').style.display='none';$('#os_bioCard').style.display='none';$('#os_extractionCard').style.display='none';
+  $('#os_petP').textContent='—';$('#os_bioP').textContent='—';$('#os_extractionPrice').textContent='—';
+  $('#os_baseBanner').classList.add('hidden');$('#os_adjBanner').classList.add('hidden');
+  os_buildConds();$('#os_intCond').style.display='none';$('#os_extCond').style.display='none';
+  os_updateExtP();os_updateAddonP();os_recalc();
+}
+
+// ==================== PHONE ====================
+let ph={vehicle:null,age:null,service:null,garage:null,kidspets:null,issues:{stains:false,pethair:false,smell:false,biohazard:false,sand:false,sap:false},addons:{clay:false,trim:false,trimDress:false,headlight:false,pet:false,bio:false,extraction:false},discType:'dollar'};
+
+function ph_set(key,val){
+  ph[key]=val;
+  const rm={vehicle:'ph_vRow',age:'ph_aRow',service:'ph_sRow',garage:'ph_gRow',kidspets:'ph_kpRow'};
+  const am={vehicle:'data-v',age:'data-a',service:'data-s',garage:'data-g',kidspets:'data-kp'};
+  act($('#'+rm[key]),am[key],val);
+  if(key==='vehicle')ph_updateExtRange();
+  ph_recalc();
+}
+function ph_toggleIss(i){ph.issues[i]=!ph.issues[i];$(`[data-i="${i}"]`).classList.toggle('active',ph.issues[i]);ph_recalc()}
+function ph_toggleAddon(k){
+  if(k==='trim'&&ph.addons.trimDress){ph.addons.trimDress=false;$('#ph_addonTrimDress').classList.remove('active')}
+  if(k==='trimDress'&&ph.addons.trim){ph.addons.trim=false;$('#ph_addonTrim').classList.remove('active')}
+  ph.addons[k]=!ph.addons[k];const cap=k.charAt(0).toUpperCase()+k.slice(1);$('#ph_addon'+cap)?.classList.toggle('active',ph.addons[k]);ph_recalc();
+}
+function ph_setDT(t){ph.discType=t;$('#ph_dD').classList.toggle('active',t==='dollar');$('#ph_dP').classList.toggle('active',t==='percent');ph_recalc()}
+
+function ph_updateExtRange(){
+  if(ph.vehicle===null){$('#ph_extP').textContent='+$50–$290';return}
+  // show min (light seats) to max (heavy both) for their vehicle
+  const lo=EP[0][ph.vehicle].s,hi=EP[2][ph.vehicle].b;
+  $('#ph_extP').textContent='+$'+lo+'–$'+hi;
+}
+
+function ph_recalc(){
+  if(ph.vehicle===null||ph.service===null){
+    $('#totalLabel').textContent='Phone Quote Range';$('#totalAmt').textContent='—';
+    $('#totalOrig').style.display='none';$('#totalDiscL').style.display='none';
+    $('#totalBar').classList.remove('has-value');$('#ph_rangeBanner').classList.add('hidden');return;
+  }
+
+  const v=ph.vehicle,svc=ph.service;
+  const baseP=BASE[svc][v];
+
+  // Score for max end (up to 50% above base)
+  let score=0;
+  if(ph.age==='mid')score+=1;else if(ph.age==='old')score+=2;else if(ph.age==='oldest')score+=3;
+  if(ph.garage==='no')score+=1;
+  if(ph.kidspets==='kids')score+=1;else if(ph.kidspets==='pets')score+=1;else if(ph.kidspets==='both')score+=2;
+  const issCount=Object.values(ph.issues).filter(x=>x).length;
+  score+=issCount;
+
+  // Max possible: age(3)+garage(1)+kp(2)+issues(6) = 12
+  const pct=Math.min(score/12,1);
+  const maxP=Math.round(baseP*(1+pct*0.5));
+
+  // Add-ons (both ends)
+  let addonBoth=0;let addonMin=0;let addonMax=0;
+  if(ph.addons.clay){addonBoth+=50} // with service price
+  if(ph.addons.trim){addonBoth+=50}
+  if(ph.addons.trimDress){addonBoth+=25}
+  if(ph.addons.headlight){addonBoth+=75} // with service price
+  if(ph.addons.pet){addonMin+=25;addonMax+=50}
+  if(ph.addons.bio){addonMin+=50;addonMax+=150}
+  if(ph.addons.extraction){
+    // Use min/max extraction for their vehicle
+    addonMin+=EP[0][v].s;addonMax+=EP[2][v].b;
+  }
+
+  let lo=baseP+addonBoth+addonMin;
+  let hi=maxP+addonBoth+addonMax;
+
+  // Discount
+  const dv=parseFloat($('#ph_discI').value)||0;
+  if(dv>0){
+    if(ph.discType==='dollar'){lo=Math.max(0,lo-dv);hi=Math.max(0,hi-dv)}
+    else{const p=Math.min(dv,100)/100;lo=Math.round(lo*(1-p));hi=Math.round(hi*(1-p))}
+  }
+
+  // Range banner
+  $('#ph_rangeBanner').classList.remove('hidden');
+  $('#ph_rangeVal').textContent='$'+lo+' – $'+hi;
+  const condPct=Math.round(pct*50);
+  $('#ph_rangeDetail').textContent='Base $'+baseP+(condPct>0?' · Up to +'+condPct+'% condition adjustment':'');
+
+  // Total bar
+  $('#totalLabel').textContent='Phone Quote Range';
+  $('#totalAmt').textContent='$'+lo+'–$'+hi;
+  $('#totalOrig').style.display='none';
+  if(dv>0){$('#totalDiscL').textContent=ph.discType==='dollar'?'-$'+dv+' applied':'-'+dv+'% applied';$('#totalDiscL').style.display='block'}
+  else{$('#totalDiscL').style.display='none'}
+  $('#totalBar').classList.toggle('has-value',true);
+}
+
+function ph_reset(){
+  ph={vehicle:null,age:null,service:null,garage:null,kidspets:null,issues:{stains:false,pethair:false,smell:false,biohazard:false,sand:false,sap:false},addons:{clay:false,trim:false,trimDress:false,headlight:false,pet:false,bio:false,extraction:false},discType:'dollar'};
+  $$('#modePhone .active').forEach(e=>e.classList.remove('active'));$('#ph_dD').classList.add('active');$('#ph_discI').value='';
+  $('#ph_rangeBanner').classList.add('hidden');ph_updateExtRange();ph_recalc();
+}
+
+// ===== INIT =====
+os_buildConds();$('#os_intCond').style.display='none';$('#os_extCond').style.display='none';
+os_updateExtP();os_updateAddonP();os_recalc();
+</script>
+</body>
+</html>
